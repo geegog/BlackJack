@@ -181,7 +181,8 @@ def play():
         player_action = int(raw_input('Enter 1 for a HIT and 2 for a STAND'))
 
     if player_action == 2:
-        if Utility.compute(dealer.hand) <= 17:
+
+        while (Utility.compute(dealer.hand) <= 17) and (Utility.compute(dealer.hand) > 21):
             dealer.add_to_hand()
 
         if Utility.compute(player.hand) == 21 and Utility.compute(dealer.hand) != 21:
