@@ -8,6 +8,46 @@ class Utility(object):
         print('Utility Constructor')
 
     @staticmethod
+    def find_winner_(player, dealer):
+        if (player.hand.count('A') == 1
+            and (player.hand.count('J') == 1
+                 or player.hand.count('K') == 1
+                 or player.hand.count('Q') == 1)) \
+                and (dealer.hand.count('A') == 1
+                     and (dealer.hand.count('J') == 1
+                          or dealer.hand.count('K') == 1
+                          or dealer.hand.count('Q') == 1)):
+            return 'Push'
+        elif player.hand.count('A') == 1 \
+                and (player.hand.count('J') == 1
+                     or player.hand.count('K') == 1
+                     or player.hand.count('Q') == 1):
+            return 'BlackJack'
+        elif dealer.hand.count('A') == 1 and (dealer.hand.count('J') == 1 or dealer.hand.count('K') == 1 or
+                                              dealer.hand.count('Q') == 1):
+            return 'Loss'
+        elif Utility.compute(player.hand) == Utility.compute(dealer.hand):
+            return 'Push'
+        elif Utility.compute(player.hand) > 21:
+            return 'Loss'
+        elif Utility.compute(dealer.hand) > 21:
+            return 'Win'
+
+    @staticmethod
+    def find_winner(player, dealer):
+        if (Utility.compute(player.hand) == Utility.compute(dealer.hand)) \
+                and (Utility.compute(player.hand) == Utility.compute(dealer.hand)) > 21:
+            return 'Push'
+        elif Utility.compute(player.hand) > 21:
+            return 'Loss'
+        elif Utility.compute(dealer.hand) > 21:
+            return 'Win'
+        elif (Utility.compute(player.hand) > Utility.compute(dealer.hand)) and (Utility.compute(player.hand) <= 21):
+            return 'Win'
+        elif (Utility.compute(player.hand) < Utility.compute(dealer.hand)) and (Utility.compute(dealer.hand) <= 21):
+            return 'Loss'
+
+    @staticmethod
     def picks_count(value):
         return Deck.picks.count(value)
 
@@ -42,10 +82,14 @@ class Utility(object):
             return Utility.count_hand_without_aces(hand) + low
         elif (aces == 1) and (Utility.count_hand_without_aces(hand) + high == 21):
             return Utility.count_hand_without_aces(hand) + high
+        elif (aces == 1) and (Utility.count_hand_without_aces(hand) + high < 21):
+            return Utility.count_hand_without_aces(hand) + high
         elif (aces == 2) and (Utility.count_hand_without_aces(hand) + high + low == 21):
             return Utility.count_hand_without_aces(hand) + high + low
         elif (aces == 2) and (Utility.count_hand_without_aces(hand) + high + low > 21):
             return Utility.count_hand_without_aces(hand) + low + low
+        elif (aces == 2) and (Utility.count_hand_without_aces(hand) + high + low < 21):
+            return Utility.count_hand_without_aces(hand) + high + low
         else:
             return Utility.count_hand_without_aces(hand)
 
@@ -54,7 +98,11 @@ class Utility(object):
         total = 0
         for i in hand:
             try:
-                total += i
+                if i == 'K' or i == 'Q' or i == 'J':
+                    v = 10
+                    total += v
+                else:
+                    total += i
             except TypeError:
                 pass
         return total
@@ -89,6 +137,12 @@ class Deck(object):
             Deck.picks = value
         if value == 'A':
             return value
+        elif value == 'J':
+            return value
+        elif value == 'K':
+            return value
+        elif value == 'Q':
+            return value
         return result
 
     def init_hand(self):
@@ -100,6 +154,12 @@ class Deck(object):
             Deck.picks = value
 
             if value == 'A':
+                i_h.append(value)
+            elif value == 'J':
+                i_h.append(value)
+            elif value == 'K':
+                i_h.append(value)
+            elif value == 'Q':
                 i_h.append(value)
             else:
                 i_h.append(result)
@@ -113,7 +173,7 @@ class Deck(object):
 
 class Player(object):
 
-    def __init__(self, cash, bet_amount=50, hand=None, deck = Deck()):
+    def __init__(self, cash, bet_amount, hand=None, deck=Deck()):
         if hand is None:
             hand = []
         self.cash = cash
@@ -147,7 +207,7 @@ class Player(object):
 
 class Dealer(object):
 
-    def __init__(self, hand=None, deck = Deck()):
+    def __init__(self, hand=None, deck=Deck()):
         if hand is None:
             hand = []
         self.hand = hand
@@ -162,7 +222,7 @@ class Dealer(object):
 
 def play():
     deck = Deck()
-    player = Player(500, deck)
+    player = Player(500, 50, deck)
     dealer = Dealer(deck)
 
     amount = int(raw_input('Enter Betting Amount'))
@@ -174,32 +234,48 @@ def play():
     print('Player Hand', player.hand)
     print('Dealer Hand', dealer.hand)
 
+    if Utility.find_winner_(player, dealer) == 'BlackJack':
+        player.win()
+        print("Dealer's Hand:", dealer.hand)
+        print('BlackJack', player.hand, player.cash)
+        return
+    elif Utility.find_winner_(player, dealer) == 'Push':
+        player.push()
+        print("Dealer's Hand:", dealer.hand)
+        print('Push', player.hand, player.cash)
+        return
+    elif Utility.find_winner_(player, dealer) == 'Loss':
+        player.loss()
+        print("Dealer's Hand:", dealer.hand)
+        print('Loss', player.hand, player.cash)
+        return
+
     player_action = int(raw_input('Enter 1 for a HIT and 2 for a STAND'))
 
     while player_action == 1:
         player.add_to_hand()
+        print('Player Hand', player.hand)
         player_action = int(raw_input('Enter 1 for a HIT and 2 for a STAND'))
 
     if player_action == 2:
-
-        while (Utility.compute(dealer.hand) <= 17) and (Utility.compute(dealer.hand) > 21):
+        while Utility.compute(dealer.hand) <= 17:
             dealer.add_to_hand()
+            if Utility.compute(dealer.hand) > 21:
+                player.win()
+                print('Win', player.hand, player.cash)
+                print(dealer.hand)
+                return
 
-        if Utility.compute(player.hand) == 21 and Utility.compute(dealer.hand) != 21:
-            player.win()
-            print('BlackJack', player.hand, player.cash)
-        elif Utility.compute(player.hand) == 21 and Utility.compute(dealer.hand) == 21:
-            player.push()
-            print('Push', player.hand, player.cash)
-        elif Utility.compute(player.hand) == Utility.compute(dealer.hand):
-            player.push()
-            print('Push', player.hand, player.cash)
-        elif Utility.compute(player.hand) > Utility.compute(dealer.hand):
-            player.win()
-            print('Win', player.hand, player.cash)
-        elif Utility.compute(player.hand) < Utility.compute(dealer.hand):
+        if Utility.find_winner(player, dealer) == 'Loss':
             player.loss()
+            print("Dealer's Hand:", dealer.hand)
             print('Loss', player.hand, player.cash)
+            return
+        elif Utility.find_winner(player, dealer) == 'Win':
+            player.win()
+            print("Dealer's Hand:", dealer.hand)
+            print('Win', player.hand, player.cash)
+            return
 
 
 play()
